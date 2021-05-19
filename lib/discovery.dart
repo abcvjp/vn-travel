@@ -182,6 +182,26 @@ class DiscoveryState extends State<Discovery>
     });
   }
 
+  void _onSearchClear() {
+    if (_tappedMapSymbol != null) {
+      mapController.removeSymbol(_tappedMapSymbol);
+      _tappedMapSymbol = null;
+    }
+    if (_selectedSymbol != null) {
+      _updateSelectedSymbol(SymbolOptions(
+        iconSize: 1.0,
+      ));
+      _selectedSymbol = null;
+    }
+    setState(() {
+      curPlace = null;
+      if (_isShowPlaceCard) {
+        _isShowPlaceCard = false;
+      }
+      // mapController.showPlaceCard(place);
+    });
+  }
+
   Future<Symbol> _addSymbol(LatLng location,
       [String type = 'place', Place place]) {
     Map data = {"type": type, "place": place};
@@ -273,15 +293,7 @@ class DiscoveryState extends State<Discovery>
                       showYourLocation: false,
                       hintText: 'Tìm trên map',
                       onSelected: _onSearchSelected,
-                      onClearInput: () {
-                        setState(() {
-                          curPlace = null;
-                          if (_isShowPlaceCard) {
-                            _isShowPlaceCard = false;
-                          }
-                          // mapController.showPlaceCard(place);
-                        });
-                      },
+                      onClearInput: _onSearchClear,
                     ),
                   ),
                 ],

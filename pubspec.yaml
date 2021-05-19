@@ -38,10 +38,12 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/symbols/place.png
     - assets/symbols/placeholder.png
     - assets/symbols/custom-icon.png
     - assets/symbols/origin.png
     - assets/symbols/destination.png
+    - assets/symbols/2.0x/place.png
     - assets/symbols/2.0x/placeholder.png
     - assets/symbols/2.0x/custom-icon.png
     - assets/symbols/2.0x/origin.png
