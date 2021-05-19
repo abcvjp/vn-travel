@@ -256,7 +256,7 @@ class DiscoveryState extends State<Discovery>
       body: Stack(
         children: <Widget>[
           WeMap(
-            myLocationEnabled: false,
+            myLocationEnabled: _myLocationEnabled,
             myLocationRenderMode: MyLocationRenderMode.NORMAL,
             myLocationTrackingMode: MyLocationTrackingMode.Tracking,
             onMapClick: _onMapClick,
