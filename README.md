@@ -1,6 +1,6 @@
-# wemapgl_example
+# vn_travel
 
-Demonstrates how to use the wemapgl plugin.
+A Travel App using WemapSDK
 
 ## Usage
 Replace your WeMap API Key here in main.dart.

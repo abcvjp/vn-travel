@@ -156,6 +156,32 @@ class DiscoveryState extends State<Discovery>
     });
   }
 
+  void _onSearchSelected(_place) {
+    print('on search selected');
+    curPlace = _place;
+    mapController.moveCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: curPlace.location,
+          zoom: 15.0,
+        ),
+      ),
+    );
+    if (_tappedMapSymbol != null) {
+      mapController.removeSymbol(_tappedMapSymbol);
+      _tappedMapSymbol = null;
+    }
+    if (_selectedSymbol != null) {
+      _updateSelectedSymbol(SymbolOptions(
+        iconSize: 1.0,
+      ));
+      _selectedSymbol = null;
+    }
+    setState(() {
+      _isShowPlaceCard = true;
+    });
+  }
+
   Future<Symbol> _addSymbol(LatLng location,
       [String type = 'place', Place place]) {
     Map data = {"type": type, "place": place};
@@ -246,20 +272,7 @@ class DiscoveryState extends State<Discovery>
                           (curPlace != null) ? curPlace.placeName : null,
                       showYourLocation: false,
                       hintText: 'Tìm trên map',
-                      onSelected: (_place) {
-                        setState(() {
-                          curPlace = _place;
-                          _isShowPlaceCard = true;
-                        });
-                        mapController.moveCamera(
-                          CameraUpdate.newCameraPosition(
-                            CameraPosition(
-                              target: curPlace.location,
-                              zoom: 15.0,
-                            ),
-                          ),
-                        );
-                      },
+                      onSelected: _onSearchSelected,
                       onClearInput: () {
                         setState(() {
                           curPlace = null;
