@@ -38,15 +38,15 @@ class DiscoveryState extends State<Discovery>
   LocationData deviceLocation;
 
   // map config
-  int searchType = 1; //Type of search bar
-  String searchPlaceName;
-  LatLng _myLatLng = LatLng(21.038282, 105.782885);
+  final int searchType = 1; //Type of search bar
+  final LatLng _myLatLng = LatLng(21.038282, 105.782885);
   bool _myLocationEnabled = false;
 
   // symbols
   Symbol _selectedSymbol; // only place symbols
   Symbol _tappedMapSymbol;
-  String _placeIcon = "assets/symbols/origin.png";
+  final String _placeIcon = "assets/symbols/place.png";
+  final String _placeHolderIcon = "assets/symbols/placeholder.png";
 
   // suggest places data
   Future<List<Place>> suggestedPlaces;
@@ -114,12 +114,6 @@ class DiscoveryState extends State<Discovery>
         _isShowPlaceCard = false;
       });
     }
-  }
-
-  void _onUntappedSelectedPlace() {
-    _updateSelectedSymbol(SymbolOptions(
-      iconSize: 1.0,
-    ));
   }
 
   void _onMapClick(point, latlng, _place) {
@@ -208,10 +202,10 @@ class DiscoveryState extends State<Discovery>
     var icon;
     switch (type) {
       case 'place':
-        icon = "assets/symbols/placeholder.png";
+        icon = _placeIcon;
         break;
       default:
-        icon = "assets/symbols/origin.png";
+        icon = _placeHolderIcon;
     }
     return mapController.addSymbol(
       SymbolOptions(
@@ -260,9 +254,6 @@ class DiscoveryState extends State<Discovery>
             myLocationRenderMode: MyLocationRenderMode.NORMAL,
             myLocationTrackingMode: MyLocationTrackingMode.Tracking,
             onMapClick: _onMapClick,
-            onPlaceCardClose: () {
-              print("Place Card closed");
-            },
             onStyleLoadedCallback: () {
               // add suggested places symbol
               _addSymbol(LatLng(21.038282, 105.782885), 'place');
@@ -321,7 +312,19 @@ class DiscoveryState extends State<Discovery>
                                 const SizedBox(width: 8),
                                 TextButton(
                                   child: const Text('DẪN ĐƯỜNG'),
-                                  onPressed: () {/* ... */},
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => WeMapDirection(
+                                                originIcon:
+                                                    "assets/symbols/origin.png",
+                                                destinationIcon:
+                                                    "assets/symbols/destination.png",
+                                                destinationPlace: curPlace,
+                                              )),
+                                    );
+                                  },
                                 ),
                                 const SizedBox(width: 8),
                               ],
@@ -390,7 +393,8 @@ class DiscoveryState extends State<Discovery>
                                           index -= 1;
                                           return ListTile(
                                             title: Text('item ${index}'),
-                                            trailing: Icon(Icons.add),
+                                            trailing: Icon(Icons
+                                                .arrow_forward_ios_rounded),
                                           );
                                         },
                                       ),
