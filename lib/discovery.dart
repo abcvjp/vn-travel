@@ -25,11 +25,7 @@ class Discovery extends StatefulWidget {
   State createState() => DiscoveryState();
 }
 
-class DiscoveryState extends State<Discovery>
-    with AutomaticKeepAliveClientMixin<Discovery> {
-  @override
-  bool get wantKeepAlive => true;
-
+class DiscoveryState extends State<Discovery> {
   final _placeRepository = PlaceRepository(); // repo to fetch data
   final location = LocationPlugin.Location(); // location package instance
 
@@ -43,13 +39,13 @@ class DiscoveryState extends State<Discovery>
   bool _myLocationEnabled = false;
 
   // symbols
-  Symbol _selectedSymbol; // only place symbols
-  Symbol _tappedMapSymbol;
+  Symbol _focusPlaceSymbol;
   final String _placeIcon = "assets/symbols/place.png";
   final String _placeHolderIcon = "assets/symbols/placeholder.png";
 
   // suggest places data
-  Future<List<Place>> suggestedPlaces;
+  List<WeMapPlace> suggestedPlaces;
+  Future<List<Place>> _futureSuggestedPlaces;
 
   // ui
   bool _isShowPlaceCard = false;
@@ -76,123 +72,61 @@ class DiscoveryState extends State<Discovery>
 
   void _onSymbolTapped(Symbol symbol) {
     print('on symbol tapped');
-    if (_tappedMapSymbol != null) {
-      // dang nhap vao current tapped map symbol
-      if (_tappedMapSymbol == symbol) {
-        // nhap lai vao current tapped map symbol
-        mapController.removeSymbol(_tappedMapSymbol);
-        setState(() {
-          curPlace = null;
-          _isShowPlaceCard = false;
-          _tappedMapSymbol = null;
-        });
-        return;
-      }
-      // đang nhấp vào current tapped symbol nhưng vừa nhấp vào place symbol
-      mapController.removeSymbol(_tappedMapSymbol);
-      _tappedMapSymbol = null;
-    }
-    if (_selectedSymbol != null) {
-      _updateSelectedSymbol(
-        const SymbolOptions(iconSize: 1.0),
-      );
-    }
-    if (_selectedSymbol != symbol) {
-      _selectedSymbol = symbol;
-      _updateSelectedSymbol(
-        SymbolOptions(
-          iconSize: 1.4,
-        ),
-      );
-      setState(() {
-        curPlace = symbol.data['place'];
-        _isShowPlaceCard = true;
-      });
-    } else {
-      setState(() {
-        _selectedSymbol = null;
-        _isShowPlaceCard = false;
-      });
+    final place = symbol.data['place'];
+    if (place != null) {
+      _focusPlace(place);
     }
   }
 
-  void _onMapClick(point, latlng, _place) {
+  void _onMapClick(point, latlng, place) {
     print('on map click');
-    curPlace = _place;
-    // don't work: mapController.showPlaceCard(_place);
-
-    if (_tappedMapSymbol != null) {
-      mapController
-          .updateSymbol(
-              _tappedMapSymbol,
-              SymbolOptions(
-                geometry: _place.location,
-              ))
-          .then((value) {
-        setState(() {
-          _tappedMapSymbol.data['place'] = _place;
-        });
-      });
-    } else {
-      _addSymbol(latlng, 'tappedMapSymbol').then((symbol) {
-        _tappedMapSymbol = symbol;
-      });
-    }
-    if (_selectedSymbol != null) {
-      _updateSelectedSymbol(
-        SymbolOptions(iconSize: 1.0),
-      );
-      _selectedSymbol = null;
-    }
-    setState(() {
-      curPlace = _place;
-      _isShowPlaceCard = true;
-    });
+    _focusPlace(place);
   }
 
-  void _onSearchSelected(_place) {
+  void _onSearchSelected(place) {
     print('on search selected');
-    curPlace = _place;
     mapController.moveCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
-          target: curPlace.location,
+          target: place.location,
           zoom: 15.0,
         ),
       ),
     );
-    if (_tappedMapSymbol != null) {
-      mapController.removeSymbol(_tappedMapSymbol);
-      _tappedMapSymbol = null;
-    }
-    if (_selectedSymbol != null) {
-      _updateSelectedSymbol(SymbolOptions(
-        iconSize: 1.0,
-      ));
-      _selectedSymbol = null;
-    }
-    setState(() {
-      _isShowPlaceCard = true;
-    });
+    _focusPlace(place);
   }
 
-  void _onSearchClear() {
-    if (_tappedMapSymbol != null) {
-      mapController.removeSymbol(_tappedMapSymbol);
-      _tappedMapSymbol = null;
+  void _focusPlace(WeMapPlace place) {
+    if (curPlace == null && _focusPlaceSymbol == null) {
+      _addSymbol(place.location, 'tappedMapSymbol').then((symbol) {
+        _focusPlaceSymbol = symbol;
+      });
+      setState(() {
+        curPlace = place;
+        _isShowPlaceCard = true;
+      });
+    } else if (curPlace != null && _focusPlaceSymbol != null) {
+      mapController.updateSymbol(
+        _focusPlaceSymbol,
+        SymbolOptions(geometry: place.location),
+      );
+      setState(() {
+        curPlace = place;
+        _isShowPlaceCard = true;
+      });
+    } else {
+      print('error focus place');
     }
-    if (_selectedSymbol != null) {
-      _updateSelectedSymbol(SymbolOptions(
-        iconSize: 1.0,
-      ));
-      _selectedSymbol = null;
+  }
+
+  void _unfocusPlace() {
+    if (_focusPlaceSymbol != null) {
+      mapController.removeSymbol(_focusPlaceSymbol);
     }
     setState(() {
       curPlace = null;
-      if (_isShowPlaceCard) {
-        _isShowPlaceCard = false;
-      }
-      // mapController.showPlaceCard(place);
+      _focusPlaceSymbol = null;
+      _isShowPlaceCard = false;
     });
   }
 
@@ -216,36 +150,26 @@ class DiscoveryState extends State<Discovery>
     );
   }
 
-  void _updateSelectedSymbol(SymbolOptions changes) {
-    mapController.updateSymbol(_selectedSymbol, changes);
-  }
-
   void initState() {
     super.initState();
-    _requestAcceptLocation().then((permissionStatus) {
-      if (_myLocationEnabled != permissionStatus) {
+    _requestAcceptLocation().then((permissionGranted) {
+      if (permissionGranted) {
         setState(() {
-          _myLocationEnabled = permissionStatus;
+          _myLocationEnabled = true;
         });
-      }
-      if (_myLocationEnabled) {
-        location.getLocation().then((location) {
-          deviceLocation = location;
-          suggestedPlaces = _placeRepository.getSuggestedPlaces();
-        });
+        _futureSuggestedPlaces = _placeRepository.getSuggestedPlaces();
       }
     });
   }
 
   void dispose() {
     mapController?.onSymbolTapped?.remove(_onSymbolTapped);
+    mapController.removeSymbols(mapController.symbols);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
-
     return new Scaffold(
       body: Stack(
         children: <Widget>[
@@ -284,7 +208,7 @@ class DiscoveryState extends State<Discovery>
                       showYourLocation: false,
                       hintText: 'Tìm trên map',
                       onSelected: _onSearchSelected,
-                      onClearInput: _onSearchClear,
+                      onClearInput: _unfocusPlace,
                     ),
                   ),
                 ],
@@ -334,7 +258,7 @@ class DiscoveryState extends State<Discovery>
                       ))
                   : (_myLocationEnabled
                       ? FutureBuilder<List<Place>>(
-                          future: suggestedPlaces,
+                          future: _futureSuggestedPlaces,
                           builder: (context, snapshot) {
                             if (snapshot.connectionState ==
                                     ConnectionState.none ||
@@ -350,7 +274,11 @@ class DiscoveryState extends State<Discovery>
                                   child: Text(ApiExceptionMapper.toErrorMessage(
                                       snapshot.error)));
                             } else {
-                              // final places = snapshot.data;
+                              // process data
+                              final places = snapshot.data;
+                              suggestedPlaces =
+                                  places.map((i) => i.toWeMapPlace()).toList();
+
                               return DraggableScrollableSheet(
                                 initialChildSize: 0.08,
                                 minChildSize: 0.05,
@@ -392,7 +320,7 @@ class DiscoveryState extends State<Discovery>
                                           }
                                           index -= 1;
                                           return ListTile(
-                                            title: Text('item ${index}'),
+                                            title: Text('item'),
                                             trailing: Icon(Icons
                                                 .arrow_forward_ios_rounded),
                                           );

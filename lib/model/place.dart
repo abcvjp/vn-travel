@@ -1,3 +1,5 @@
+import 'package:wemapgl/wemapgl.dart';
+
 class Place {
   final String id;
   final String name;
@@ -20,6 +22,14 @@ class Place {
       this.likes,
       this.comments,
       this.location});
+
+  WeMapPlace toWeMapPlace() {
+    return WeMapPlace(
+      placeName: this.name,
+      description: this.address,
+      location: LatLng(this.location.lat, this.location.lng),
+    );
+  }
 
   factory Place.fromJson(Map<String, dynamic> parsedJson) {
     var commentList = parsedJson['comments'] as List;
